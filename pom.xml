@@ -39,6 +39,12 @@
                     </archive>
                 </configuration>
             </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <configuration>
+                    <outputDirectory>${project.build.outputDirectory}\resources</outputDirectory>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
     <dependencies>

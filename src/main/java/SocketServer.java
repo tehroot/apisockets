@@ -16,6 +16,7 @@ public class SocketServer extends WebSocketServer {
     @Override
     public void onOpen(WebSocket webSocket, ClientHandshake clientHandshake) {
         sockets.put(webSocket.hashCode(), webSocket);
+        System.out.println(webSocket.hashCode());
     }
 
     @Override
