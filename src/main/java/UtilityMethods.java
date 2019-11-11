@@ -10,10 +10,9 @@ public class UtilityMethods {
 
     public static JsonNode settingsRead(){
         try{
-            File file = new File(UtilityMethods.class.getResource("/settings.json").getFile());
-            FileReader reader = new FileReader(file.getAbsoluteFile());
+            System.out.println(UtilityMethods.class.getResourceAsStream("settings.json"));
             ObjectMapper mapper = new ObjectMapper();
-            JsonNode node = mapper.readTree(reader);
+            JsonNode node = mapper.readTree(UtilityMethods.class.getResourceAsStream("settings.json"));
             return node;
         } catch(IOException e){
             e.printStackTrace();

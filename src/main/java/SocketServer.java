@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import kong.unirest.HttpResponse;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
+import org.java_websocket.handshake.ServerHandshake;
 import org.java_websocket.server.WebSocketServer;
 public class SocketServer extends WebSocketServer {
     private final static HashMap<Integer, WebSocket> sockets = new HashMap<Integer, WebSocket>();
@@ -29,7 +30,10 @@ public class SocketServer extends WebSocketServer {
         try {
             if (s.contains("facilities,geocode,query")) {
                 ObjectMapper mapper = new ObjectMapper();
-                HttpResponse<kong.unirest.JsonNode> httpResponse = ApiService.returnGeocoded(s.split(",")[2].substring(5).trim().replaceAll("\\s+", "")).get();
+                HttpResponse<kong.unirest.JsonNode> httpResponse = ApiService.returnGeocoded(s.split(",")[2].substring(5).trim().replaceAll("\\s+", "")).thenAccept(
+
+                );
+                
                 if(httpResponse.getStatus() == 200){
                     JsonNode root = mapper.readTree(httpResponse.getBody().toPrettyString());
                     for(JsonNode node : root){
@@ -58,7 +62,7 @@ public class SocketServer extends WebSocketServer {
             } else if(s.contains("facilities,latlng")){
                 HttpResponse<kong.unirest.JsonNode> httpResponse = ApiService.returnVADataBoxedLatLng(s.split(",")[1].substring(6).trim().replaceAll("\\s+", "")).get();
                 if(httpResponse.getStatus() == 200){
-                    webSocket.send(httpResponse.getBody().toString());
+
                 }
             }
         } catch (Exception e){
