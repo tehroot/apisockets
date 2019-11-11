@@ -26,6 +26,7 @@ public class UtilityMethods {
     }
 
     public static List<float[]> coordinateDecode(String polyline){
+        polyline.replace("\\", "\\\\");
         int index = 0;
         int Byte = 0;
         int shift;
@@ -71,7 +72,7 @@ public class UtilityMethods {
     }
 
 
-    public List<float[]> latlngBoundBox(String latlng, String distance){
+    public static List<float[]> latlngBoundBox(String latlng, String distance){
         double latitude = 0;
         double longitude = 0;
         double dist = 0;
@@ -90,7 +91,7 @@ public class UtilityMethods {
         }
     }
 
-    public float[] calculateBoundBox(double lat, double lng, double distance, int bearing){
+    public static float[] calculateBoundBox(double lat, double lng, double distance, int bearing){
         double radius = 6378.1;
         double new_lat = Math.toDegrees(Math.asin(Math.sin(Math.toRadians(lat)) * Math.cos(distance / radius)
                 + Math.cos(Math.toRadians(lat)) * Math.sin(distance / radius) * Math.cos(Math.toDegrees(bearing))));

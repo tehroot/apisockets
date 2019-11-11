@@ -1,8 +1,5 @@
 import java.net.InetSocketAddress;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kong.unirest.HttpResponse;
@@ -29,19 +26,27 @@ public class SocketServer extends WebSocketServer {
     @Override
     public void onMessage(WebSocket webSocket, String s) {
         try {
-            if(s.contains("geocode")){
-                String[] arr = s.split(",");
+            if (s.contains("facilities,geocode,query")) {
                 ObjectMapper mapper = new ObjectMapper();
-                String zipCode = "";
-                JsonNode root = mapper.readTree(ApiService.returnGeocoded(arr[1]).get().getBody().toPrettyString());
-                for(JsonNode node : root){
-                    if(node.path("results") != null){
-                        for(JsonNode nestedNode : node){
-                            if(nestedNode.path("address_components") != null){
-                                for(JsonNode nestedNestedNode : nestedNode){
-                                    if(nestedNestedNode.get("types").isArray()){
-                                        if(nestedNestedNode.get("types").asText() == "postal_code"){
-                                            zipCode = nestedNestedNode.get("short_name").asText();
+                HttpResponse<kong.unirest.JsonNode> httpResponse = ApiService.returnGeocoded(s.split(",")[2].substring(5).trim().replaceAll("\\s+", "")).get();
+                if(httpResponse.getStatus() == 200){
+                    JsonNode root = mapper.readTree(httpResponse.getBody().toPrettyString());
+                    for(JsonNode node : root){
+                        if(!node.path("results").isMissingNode()){
+                            for(JsonNode nestedNode : node){
+                                if(!nestedNode.path("geometry").isMissingNode()){
+                                    for(JsonNode nestedNestedNode : nestedNode){
+                                        if(!nestedNestedNode.path("location").isMissingNode()){
+                                            String lat = nestedNestedNode.get("lat").asText();
+                                            String lng = nestedNestedNode.get("lng").asText();
+                                            String latlng = lat+","+lng;
+                                            //submit another http future here for return
+                                            //process to latlng boxed, default distance scale?
+                                            //incorporate distance scale at some point?
+                                            HttpResponse<kong.unirest.JsonNode> va_response = ApiService.returnVADataBoxedLatLng(latlng).get();
+                                            if(va_response.getStatus() == 200){
+                                                webSocket.send(va_response.getBody().toString());
+                                            }
                                         }
                                     }
                                 }
@@ -49,12 +54,11 @@ public class SocketServer extends WebSocketServer {
                         }
                     }
                 }
-            } else if (s.contains("directions")){
-                String[] arr = s.split(",");
-
-            } else if (s.contains("facilities")){
-                String[] arr = s.split(",");
-
+            } else if(s.contains("facilities,latlng")){
+                HttpResponse<kong.unirest.JsonNode> httpResponse = ApiService.returnVADataBoxedLatLng(s.split(",")[1].substring(6).trim().replaceAll("\\s+", "")).get();
+                if(httpResponse.getStatus() == 200){
+                    webSocket.send(httpResponse.getBody().toString());
+                }
             }
         } catch (Exception e){
             e.printStackTrace();
