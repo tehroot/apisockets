@@ -10,7 +10,6 @@ public class UtilityMethods {
 
     public static JsonNode settingsRead(){
         try{
-            System.out.println(UtilityMethods.class.getResourceAsStream("settings.json"));
             ObjectMapper mapper = new ObjectMapper();
             JsonNode node = mapper.readTree(UtilityMethods.class.getResourceAsStream("settings.json"));
             return node;
