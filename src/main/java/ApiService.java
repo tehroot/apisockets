@@ -28,17 +28,9 @@ public class ApiService {
                 .header("accept", "application/json")
                 .queryString("address", location)
                 .queryString("key", gmaps_api_key)
-                .asJsonAsync(new Callback<JsonNode>() {
-                    public void completed(HttpResponse<JsonNode> httpResponse) {
-                        if(httpResponse != null && httpResponse.getStatus() == 200){
-                            JsonNode body = httpResponse.getBody();
-                        }
-                    }
-                    public void cancelled(){
-                        System.out.println("Future action cancelled");
-                    }
-                    public void failed(UnirestException e){
-                        System.out.println("Exception, Job Failed: "+e.getMessage());
+                .asJsonAsync(response -> {
+                    if(response.getStatus() == 200){
+                        JsonNode body = response.getBody();
                     }
                 });
     }
