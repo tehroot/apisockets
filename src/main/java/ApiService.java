@@ -1,9 +1,9 @@
 import com.fasterxml.jackson.core.JsonProcessingException;
 import kong.unirest.*;
-import java.util.ArrayList;
+
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -14,7 +14,8 @@ public class ApiService {
         return Unirest.get(vaURI)
                 .header("accept", "application/json")
                 .header("apiKey", va_api_key)
-                .queryString("zip", zipCode).asJsonAsync( response -> {
+                .queryString("zip", zipCode)
+                .asJsonAsync( response -> {
                     int code = response.getStatus();
                     kong.unirest.JsonNode body = response.getBody();
                 });
@@ -33,10 +34,19 @@ public class ApiService {
                 });
     }
 
-    public static CompletableFuture<HttpResponse<JsonNode>> returnDirectionsPayload(ArrayList<String> queryArgs) throws UnirestException {
+    public static CompletableFuture<HttpResponse<kong.unirest.JsonNode>> returnDirectionsPayload(String[] latlng_array) throws UnirestException {
         String gmaps_api_key = UtilityMethods.settingsRead().get("google_maps_api_key").asText();
         String gmapsDirectionsURI = "https://maps.googleapis.com/maps/api/directions/json";
-        return null;
+        return Unirest.get(gmapsDirectionsURI)
+                .header("accept", "application/json")
+                .queryString("origin", latlng_array[0]+","+latlng_array[1])
+                .queryString("destination", latlng_array[2]+","+latlng_array[3])
+                .queryString("mode", "driving")
+                .queryString("key", gmaps_api_key)
+                .asJsonAsync(response -> {
+                   int code = response.getStatus();
+                   kong.unirest.JsonNode body = response.getBody();
+                });
     }
 
     public static CompletableFuture<HttpResponse<kong.unirest.JsonNode>> returnVADataBoxedLatLng(String latlng) throws UnirestException {
@@ -55,39 +65,91 @@ public class ApiService {
                 });
     }
 
-    public static String returnPayload(HttpResponse<kong.unirest.JsonNode> response) {
+    public static String processFacilitiesPayload(HttpResponse<kong.unirest.JsonNode> response) {
         try {
+            StringBuilder builder = new StringBuilder();
+            String segment_break = ";";
             ObjectMapper mapper = new ObjectMapper();
             if(response.getStatus() == 200){
                 com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(response.getBody().toPrettyString());
                 //root shit not working, need to fix this before tomorrow..
                 //need to figure out what the structure looks like in order to get the properly nested latlngs here.
                 for(com.fasterxml.jackson.databind.JsonNode node : root){
-                    if(!node.path("results").isMissingNode()){
-                        for(com.fasterxml.jackson.databind.JsonNode nestedNode : node){
-                            if(!nestedNode.path("geometry").isMissingNode()){
-                                for(com.fasterxml.jackson.databind.JsonNode nestedNestedNode : nestedNode){
-                                    if(!nestedNestedNode.path("location").isMissingNode()){
-                                        String lat = nestedNestedNode.get("lat").asText();
-                                        String lng = nestedNestedNode.get("lng").asText();
-                                        String latlng = lat+","+lng;
-                                        //submit another http future here for return
-                                        //process to latlng boxed, default distance scale?
-                                        //incorporate distance scale at some point?
-                                        HttpResponse<kong.unirest.JsonNode> va_response = ApiService.returnVADataBoxedLatLng(latlng).get();
-                                        if(va_response.getStatus() == 200){
-                                            return response.getBody().toString();
-                                        }
-                                    }
-                                }
-                            }
+                    if(node.isArray() && !node.isNull()){
+                        Iterator<JsonNode> iter = node.iterator();
+                        while(iter.hasNext()){
+                            String line_break = "/n";
+                            builder.append(iter.next());
+                            builder.append(line_break);
+                        }
+                    }
+                }
+                return builder.toString();
+            }
+        } catch(JsonProcessingException ex) {
+            //| InterruptedException | ExecutionException ex
+            ex.printStackTrace();
+        }
+        return "";
+    }
+
+    public static String processGeocodePayload(HttpResponse<kong.unirest.JsonNode> response){
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            if(response.getStatus() == 200){
+                com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(response.getBody().toPrettyString());
+                for(com.fasterxml.jackson.databind.JsonNode node : root){
+                    if(node.isArray()){
+                        if(node.findValue("location") != null){
+                            JsonNode location_pt = node.findValue("location");
+                            String list_json = mapper.writeValueAsString(location_pt);
+                            return list_json;
                         }
                     }
                 }
             }
-        } catch(JsonProcessingException | InterruptedException | ExecutionException ex) {
+        } catch (JsonProcessingException ex){
             ex.printStackTrace();
         }
+        return "";
+    }
+
+    public static String processDirectionsPayload(HttpResponse<kong.unirest.JsonNode> response){
+        try {
+            StringBuilder builder = new StringBuilder();
+            String segment_break = ";";
+            ObjectMapper mapper = new ObjectMapper();
+            if(response.getStatus() == 200){
+                com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(response.getBody().toPrettyString());
+                for(com.fasterxml.jackson.databind.JsonNode node : root){
+                    if(node.isArray()){
+                        if(node.findValue("legs") != null) {
+                            List<JsonNode> nodes = node.findValues("html_instructions");
+                            JsonNode overview_polyline = node.findValue("overview_polyline");
+                            String polyline_val = overview_polyline.get("points").toString().replace('"', ' ');
+                            for(JsonNode sub_node : nodes){
+                                sub_node.toPrettyString();
+                                String line_break = "/n";
+                                builder.append(sub_node.toPrettyString());
+                                builder.append(line_break);
+                            }
+                            builder.append(segment_break);
+                            builder.append(polyline_val);
+                            builder.append(segment_break);
+                            String list_json = mapper.writeValueAsString(UtilityMethods.polyLineCoordDecode(polyline_val.trim()));
+                            builder.append(list_json);
+                        }
+                    }
+                }
+                return builder.toString();
+            }
+        } catch(JsonProcessingException ex){
+            ex.printStackTrace();
+        }
+        return "";
+    }
+
+    public static String returnPolylinePayload(HttpResponse<kong.unirest.JsonNode> response){
         return "";
     }
 }

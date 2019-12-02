@@ -3,6 +3,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,11 +21,11 @@ public class UtilityMethods {
         }
     }
 
-    public static List<float[]> polyLineCoordDecode(String polylineEncoded){
+    public static List<double[]> polyLineCoordDecode(String polylineEncoded){
         return coordinateDecode(polylineEncoded);
     }
 
-    public static List<float[]> coordinateDecode(String polyline){
+    public static List<double[]> coordinateDecode(String polyline){
         polyline.replace("\\", "\\\\");
         int index = 0;
         int Byte = 0;
@@ -34,7 +35,7 @@ public class UtilityMethods {
         int result = 0;
         int latChg;
         int lngChg;
-        List<float[]> output = new ArrayList<>();
+        List<double[]> output = new ArrayList<>();
         while(index < polyline.length()){
             shift = 0;
             result = 0;
@@ -54,9 +55,10 @@ public class UtilityMethods {
 
             lat += latChg;
             lng += lngChg;
-            float[] coordinate = new float[2];
-            coordinate[0] = lat;
-            coordinate[1] = lng;
+            double[] coordinate = new double[2];
+            DecimalFormat df = new DecimalFormat("###.#####");
+            coordinate[0] = Double.valueOf(df.format(lat * 1e-5));
+            coordinate[1] = Double.valueOf(df.format(lng * 1e-5));
             output.add(coordinate);
         }
         return output;
