@@ -102,8 +102,7 @@ public class ApiService {
                     if(node.isArray()){
                         if(node.findValue("location") != null){
                             JsonNode location_pt = node.findValue("location");
-                            String list_json = mapper.writeValueAsString(location_pt);
-                            return list_json;
+                            return mapper.writeValueAsString(location_pt);
                         }
                     }
                 }
