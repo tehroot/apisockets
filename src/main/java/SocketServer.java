@@ -8,7 +8,7 @@ public class SocketServer {
     }
 
     public static void startServer(){
-        Server server = new Server("localhost", 8844, "/websockets", SocketEndpoints.class);
+        Server server = new Server("localhost", 8844, "/websockets", va_facilities_endpoints.class, google_maps_endpoints.class);
         try {
            server.start();
            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));

@@ -25,14 +25,16 @@ public class UtilityMethods {
         return coordinateDecode(polylineEncoded);
     }
 
+    //implementation to decode googles polyline compression format
+    //hefty memes here, e v e r y bit counts ty google dad
     public static List<double[]> coordinateDecode(String polyline){
         polyline.replace("\\", "\\\\");
         int index = 0;
-        int Byte = 0;
+        int Byte;
         int shift;
         float lat = 0;
         float lng = 0;
-        int result = 0;
+        int result;
         int latChg;
         int lngChg;
         List<double[]> output = new ArrayList<>();
@@ -40,19 +42,18 @@ public class UtilityMethods {
             shift = 0;
             result = 0;
             do {
-                Byte = polyline.charAt(index++) - 63;
-                result |= (Byte & 0x1f) << shift;
-                shift += 5;
-            } while(Byte >= 0x20);
-            latChg = ((result % 2 == 0) ? ~(result >> 1) : (result >> 1));
-            shift = result = 0;
+                Byte = polyline.charAt(index++) - 63; //converted polyline format, take each individual character in the array, subtract by 63 to gain the proper decimal format
+                result |= (Byte & 0x1f) << shift; //result is the byte OR'd with 0x1f to check if there's a following chunk, then shifted in 5 bit chunks every iter
+                shift += 5; // increment bit shift for 5-bit chunking
+            } while(Byte >= 0x20); // while the byte is greater than 0x20
+            latChg = ((result & 1) == 0 ? (result >> 1) : ~(result >> 1));
+            shift = result = 0; //zero the shift/result after each val chunk equiv.
             do {
                 Byte = polyline.charAt(index++) - 63;
                 result |= (Byte & 0x1f) << shift;
                 shift += 5;
             } while(Byte >= 0x20);
-            lngChg = ((result % 2 == 0) ? ~(result >> 1) : (result >> 1));
-
+            lngChg = ((result & 1) == 0 ? (result >> 1) : ~(result >> 1));
             lat += latChg;
             lng += lngChg;
             double[] coordinate = new double[2];
